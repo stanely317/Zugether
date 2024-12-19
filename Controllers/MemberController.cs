@@ -846,6 +846,17 @@ namespace Zugether.Controllers
 					// 獲取現有的資料
 					existingRoom!.isEnabled = false;
 					existingRoom.is_completed = false;
+					if (existingRoom == null)
+					{
+						return Json(new
+						{
+							success = false,
+							color = "danger",
+							alertText = "找不到要更新的房間。",
+							show = true,
+							time = 2000
+						});
+					}
 					foreach (PropertyInfo prop in room.GetType().GetProperties())
 					{
 						// 過濾掉虛擬屬性以及主鍵、外鍵
