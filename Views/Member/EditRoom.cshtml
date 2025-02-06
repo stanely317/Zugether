@@ -670,6 +670,7 @@
                     // console.log("現在的驗證結果：" + isVerified);
                 });
 
+                // 如果表單內容沒變更過，按下修改時需進行阻擋
                 if (!isChanged) {
                     $('#alert-container').load('/Member/Alert', {
                         color: "danger",
@@ -680,7 +681,7 @@
                     return;
                 }
 
-                // 不管有無圖片都要加(新增 or 刪除都要能做)
+                // 不管有無圖片都要加(因為有可能是新增 or 刪除)
                 formData.append("consentPhoto", consent_photo);
                 formData.append("existingConsent", existing_consent);
 
@@ -688,15 +689,11 @@
                     formData.append("existingPhotos", imageUrl);
                 });
 
-
-                // 如果表單內容沒變更過，按下修改時需進行阻擋
-
-
                 // 將 room_photos 中的圖片加入 formData
                 room_photos.forEach((file, index) => {
                     formData.append("roomPhotos", file);
                 });
-                console.log(`送出前的驗證結果: ${isVerified}`);
+                // console.log(`送出前的驗證結果: ${isVerified}`);
                 if (isVerified) {
                     $.ajax({
                         url: "/Member/EditRoom",
@@ -707,7 +704,7 @@
                         // 防止FormData中的資料進行URL編碼。確保二進位不會被處理為字串，而是以原始格式傳送
                         processData: false,
                         success: function (response) {
-                            console.log("AJAX response:", response); // 確認回應內容
+                            // console.log("AJAX response:", response); 確認回應內容
 
                             // 無論結果先顯示出動畫提示窗
                             $('#alert-container').load('/Member/Alert', {
@@ -722,10 +719,10 @@
                                     window.location.href = "/Member/EditRoom";
                                 }, response.time);
                             }
-                            console.log("資料傳送成功");
+                            // console.log("資料傳送成功");
                         },
                         error: function (error) {
-                            console.log("上傳發生錯誤，內容: " + error);
+                            // console.log("上傳發生錯誤，內容: " + error);
                         }
                     });
                 }

@@ -545,6 +545,7 @@ namespace Zugether.Controllers
 		}
 
 		// --------------------------------房間相關頁面開始-------------------------------
+		
 		// 新增房間照片時，用來偵測照片格式如jpg, png等
 		public string GetMimeTypeFromImage(byte[] imageBytes)
 		{
@@ -599,10 +600,13 @@ namespace Zugether.Controllers
 					{
 						using (MemoryStream memoryStream = new MemoryStream())
 						{
-							await consentPhoto.CopyToAsync(memoryStream);
+                            // IFormFile是串流物件，需要將它的內容讀入記憶體
+							// MemoryStream是記憶體內的緩衝區，可以操作記憶體中的資料流工具
+                            await consentPhoto.CopyToAsync(memoryStream);
+                            // 將記憶體緩衝區的資料轉換為二進制陣列，以便存入DB
 							owner.consent_photo = memoryStream.ToArray();
-						}
-					}
+                        }
+                    }
 					await _context.Landlord.AddAsync(owner);
 					Album album = new Album();
 					await _context.Album.AddAsync(album);
@@ -670,14 +674,14 @@ namespace Zugether.Controllers
 			}
 		}
 
-		public IActionResult DeleteRoom()
+		public async Task<IActionResult> DeleteRoom()
 		{
 			string? memberID = getMemberID();
 			if (string.IsNullOrEmpty(memberID) || !short.TryParse(memberID, out short userID))
 			{
 				return Redirect("/Home/Index");
 			}
-			AllRoomInfoDTO? userRoom = (from r in _context.Room
+			AllRoomInfoDTO? userRoom = await (from r in _context.Room
 										join dl in _context.Device_List on r.device_list_id equals dl.device_list_id
 										join l in _context.Landlord on r.landlord_id equals l.landlord_id
 										join p in _context.Photo on r.album_id equals p.album_id into photogroup
@@ -688,7 +692,8 @@ namespace Zugether.Controllers
 											deviceList = dl,
 											landlord = l,
 											photos = photogroup.ToList()
-										}).FirstOrDefault();
+										}).SingleOrDefaultAsync();
+			// isAdd 用來在前端判斷顯示哪個頁面，因此不可省略
 			ViewBag.isAdd = (userRoom == null);
 			if (ViewBag.isAdd)
 			{
@@ -708,21 +713,20 @@ namespace Zugether.Controllers
 		[HttpDelete]
 		public async Task<IActionResult> DeleteRoom(short roomId)
 		{
-			Console.WriteLine(roomId);
 			using (IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
-					// 查找 Room 記錄，並確認其屬於當前用戶
+					// 取得當前使用者ID，確認房間為本人刊登
 					short userId = Convert.ToInt16(getMemberID());
-					Room? room = await _context.Room.FirstOrDefaultAsync(r => r.room_id == roomId && r.member_id == userId);
+					Room? room = await _context.Room.SingleOrDefaultAsync(r => r.room_id == roomId && r.member_id == userId);
 					if (room == null)
 					{
 						return RedirectToAction("AddRoom", "Member");
 					}
 
 					// 根據 room 取得相關的 Device_List、Album 和 Landlord 記錄
-					if (room!.device_list_id.HasValue)
+					if (room.device_list_id.HasValue)
 					{
 						Device_List? deviceList = await _context.Device_List.FindAsync(room.device_list_id);
 						if (deviceList != null)
@@ -757,7 +761,7 @@ namespace Zugether.Controllers
 					{
 						success = true,
 						color = "success",
-						alertText = "刪除成功，頁面即將跳轉",
+						alertText = "刪除成功!!",
 						show = true,
 						time = 2000
 					});
@@ -781,14 +785,14 @@ namespace Zugether.Controllers
 			}
 		}
 
-		public IActionResult EditRoom()
+		public async Task<IActionResult> EditRoom()
 		{
 			string? memberID = getMemberID();
 			if (string.IsNullOrEmpty(memberID) || !short.TryParse(memberID, out short userID))
 			{
 				return Redirect("/Home/Index");
 			}
-			AllRoomInfoDTO? userRoom = (from r in _context.Room
+			AllRoomInfoDTO? userRoom = await (from r in _context.Room
 										join dl in _context.Device_List on r.device_list_id equals dl.device_list_id
 										join l in _context.Landlord on r.landlord_id equals l.landlord_id
 										join p in _context.Photo on r.album_id equals p.album_id into photogroup
@@ -799,7 +803,7 @@ namespace Zugether.Controllers
 											deviceList = dl,
 											landlord = l,
 											photos = photogroup.ToList()
-										}).FirstOrDefault();
+										}).SingleOrDefaultAsync();
 			if (userRoom == null)
 			{
 				TempData["AlertModel"] = JsonConvert.SerializeObject(new PartialAlert
@@ -818,7 +822,7 @@ namespace Zugether.Controllers
 			return View(userRoom);
 		}
 
-		// 用來比對網頁請求夾帶參數與資料庫的值是否有差異，若有才會更新
+		// 比對前端請求參數與資料庫的欄位值是否不同，有差異才更新
 		public void Save_Different(PropertyInfo prop, object oldObj, object newObj)
 		{
 			object? newValue = prop.GetValue(newObj);
@@ -832,31 +836,18 @@ namespace Zugether.Controllers
 		[HttpPut]
 		public async Task<IActionResult> EditRoom(short roomId, Room room, Device_List list, Landlord owner, List<IFormFile> roomPhotos, IFormFile consentPhoto, List<string> existingPhotos, string existingConsent)
 		{
-			Console.WriteLine($"====================================={existingConsent}");
 			using (IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync())
 			{
 				try
 				{
 					short userId = Convert.ToInt16(getMemberID());
-					Room? existingRoom = await _context.Room.FirstOrDefaultAsync(r => r.room_id == roomId && r.member_id == userId);
+					Room? existingRoom = await _context.Room.SingleOrDefaultAsync(r => r.room_id == roomId && r.member_id == userId);
 					if (existingRoom == null)
 					{
 						return RedirectToAction("AddRoom", "Member");
 					}
-					// 獲取現有的資料
-					existingRoom!.isEnabled = false;
-					existingRoom.is_completed = false;
-					if (existingRoom == null)
-					{
-						return Json(new
-						{
-							success = false,
-							color = "danger",
-							alertText = "找不到要更新的房間。",
-							show = true,
-							time = 2000
-						});
-					}
+					
+					// 更新 Room
 					foreach (PropertyInfo prop in room.GetType().GetProperties())
 					{
 						// 過濾掉虛擬屬性以及主鍵、外鍵
@@ -867,9 +858,12 @@ namespace Zugether.Controllers
 						// 比對新舊值，不一樣才存進去
 						Save_Different(prop, existingRoom, room);
 					}
+                    // 更新 房間狀態設定 (下架、未完成合租)
+                    existingRoom!.isEnabled = false;
+                    existingRoom.is_completed = false;
 
-					// 更新 Device_List
-					Device_List? existingList = await _context.Device_List.FindAsync(existingRoom.device_list_id);
+                    // 更新 Device_List
+                    Device_List? existingList = await _context.Device_List.FindAsync(existingRoom.device_list_id);
 					foreach (PropertyInfo prop in list.GetType().GetProperties())
 					{
 						if (prop.GetMethod!.IsVirtual || prop.Name == "device_list_id")
@@ -891,7 +885,7 @@ namespace Zugether.Controllers
 						Save_Different(prop, existingOwner!, owner);
 					}
 
-					// 更新同意書照片
+					// 更新 同意書照片
 					if (consentPhoto != null && consentPhoto.Length > 0)
 					{
 						using (MemoryStream memoryStream = new MemoryStream())
@@ -909,12 +903,12 @@ namespace Zugether.Controllers
 						}
 					}
 
-					// 更新房間照片
-					// 獲取現有的照片
+					// 更新 房間照片
+					// step1 先取現有的照片
 					List<Photo> existingPhotosInDb = await _context.Photo
 						.Where(p => p.album_id == existingRoom.album_id)
 						.ToListAsync();
-
+					// step2 刪除移除的照片
 					foreach (Photo photo in existingPhotosInDb)
 					{
 						// 將照片從資料庫中的 byte[] 轉為 Base64 字串，並形成完整的 URL
@@ -926,7 +920,7 @@ namespace Zugether.Controllers
 							_context.Photo.Remove(photo);
 						}
 					}
-
+					// step3 存入新增的照片
 					if (roomPhotos != null && roomPhotos.Count > 0)
 					{
 						foreach (IFormFile file in roomPhotos)
@@ -975,8 +969,8 @@ namespace Zugether.Controllers
 			}
 		}
 
-
 		// ====================================房間頁面END=====================================
+
 		//會員收藏
 		public async Task<IActionResult> FavoriteRoom()
 		{
