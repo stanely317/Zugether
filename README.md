@@ -61,7 +61,7 @@
         </ul>
     </ul>
     <h2 id="database">資料庫設計：</h2>
-    <img src="https://imgur.com/Q9z4vSy" alt="資料庫設計圖" style="max-width: 100%; height: auto;">
+    <img src="https://imgur.com/Q9z4vSy.png" alt="資料表關聯圖" style="max-width: 100%; height: auto;">
     <h2 id="feature">功能說明：</h2>
     <ul>
         <li>
