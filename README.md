@@ -10,13 +10,13 @@
     <h1>Zugether合租網站</h1>
     <h2>目錄：</h2>
     <ul>
-        <li><a href="#description">專案說明</a></li>
+        <li><a href="#motivation">動機</a></li>
         <li><a href="#myJob">我負責的項目</a></li>
-        <li><a href="#technologies">技術應用</a></li>
+        <li><a href="#technologies">使用技術</a></li>
         <li><a href="#database">資料庫設計</a></li>
-        <li><a href="#feature">功能說明</a></li>
+        <li><a href="#feature">專案功能</a></li>
     </ul>
-    <h2 id="description">專案說明：</h2>
+    <h2 id="motivation">動機：</h2>
     <ul>
         <li>
             對於在外生活的學生與上班族，龐大支出來源之一就是房租，
@@ -28,7 +28,7 @@
     <h2 id="myJob">我負責的項目：</h2>
     <ul>
         <li>資料庫設計：依功能需求設計資料表、欄位與Table間的關聯</li>
-        <li>資料庫上雲：本地建置完成後備份上傳至Cloud SQL</li>
+        <li>資料庫上雲：本地建置完成後，備份上傳至Cloud SQL</li>
         <li>刊登/刪除房間：透過Transaction確保資料更新時的正確性</li>      
         <li>修改房間：前端確認資料異動後才送出請求，減輕後端負擔</li>        
     </ul>
@@ -61,7 +61,7 @@
     </ul>
     <h2 id="database">資料庫設計：</h2>
     <img src="https://imgur.com/Q9z4vSy.png" alt="資料表關聯圖" style="max-width: 100%; height: auto;">
-    <h2 id="feature">專案功能說明：</h2>
+    <h2 id="feature">專案功能：</h2>
     <ul>
         <li>房間搜尋：透過篩選器快速找到符合自身需求的房間</li>
         <li>會員註冊：能使用一般郵件註冊，也能使用Google登入</li>
